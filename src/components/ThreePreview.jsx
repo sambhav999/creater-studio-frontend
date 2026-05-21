@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 const WIDTH = 960;
 const HEIGHT = 540;
@@ -1282,8 +1283,29 @@ function makeRuntime(gamePackage) {
 
 export function ThreePreview({ gamePackage }) {
   const mountRef = useRef(null);
+  const wrapRef = useRef(null);
   const runtimeRef = useRef(null);
   const inputRef = useRef(makeInput());
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    function handleFullscreenChange() {
+      setIsFullscreen(document.fullscreenElement === wrapRef.current);
+    }
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      await wrapRef.current?.requestFullscreen?.();
+      mountRef.current?.querySelector("canvas")?.focus();
+      return;
+    }
+
+    await document.exitFullscreen?.();
+  }
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -1379,7 +1401,7 @@ export function ThreePreview({ gamePackage }) {
   }, [gamePackage]);
 
   return (
-    <div className="three-preview-wrap">
+    <div className="three-preview-wrap" ref={wrapRef}>
       <div
         className="three-preview"
         ref={mountRef}
@@ -1391,6 +1413,15 @@ export function ThreePreview({ gamePackage }) {
         <span>Action <kbd>Space</kbd> <kbd>Click</kbd></span>
         <span>More <kbd>1-4</kbd> <kbd>R</kbd></span>
       </div>
+      <button
+        type="button"
+        className="fullscreen-button"
+        onClick={toggleFullscreen}
+        aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
+        title={isFullscreen ? "Exit full screen" : "Enter full screen"}
+      >
+        {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+      </button>
     </div>
   );
 }
