@@ -5,6 +5,7 @@ import {
   Clock3,
   Copy,
   Download,
+  FileCode2,
   Gamepad2,
   Home,
   Rocket,
@@ -19,6 +20,7 @@ import { StudioControls } from "./components/StudioControls.jsx";
 import { TemplateGallery } from "./components/TemplateGallery.jsx";
 import { ThreePreview } from "./components/ThreePreview.jsx";
 import { useCreatorStudio } from "./hooks/useCreatorStudio.js";
+import { api } from "./lib/api.js";
 
 export default function App() {
   const studio = useCreatorStudio();
@@ -56,6 +58,24 @@ export default function App() {
     const link = document.createElement("a");
     link.href = url;
     link.download = `${studio.generatedPackage.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadGameCode() {
+    const response = await api.post(
+      "/games/export-code",
+      { gamePackage: studio.generatedPackage },
+      { responseType: "blob", timeout: 30000 }
+    );
+    const disposition = response.headers["content-disposition"];
+    const match = disposition?.match(/filename="([^"]+)"/);
+    const fallback = `${studio.generatedPackage.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-source.zip`;
+    const blob = new Blob([response.data], { type: "application/zip" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = match?.[1] ?? fallback;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -114,6 +134,9 @@ export default function App() {
             </button>
             <button type="button" className="ghost-button" onClick={downloadPackage}>
               <Download size={16} /> Save
+            </button>
+            <button type="button" className="ghost-button" onClick={downloadGameCode}>
+              <FileCode2 size={16} /> Code
             </button>
             <button type="button" className="publish-button">
               <Rocket size={16} /> Publish
